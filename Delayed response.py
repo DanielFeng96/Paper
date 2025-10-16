@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-黄河流域地下水位滞后响应分析完整代码
-输入数据要求：包含日期和指定特征的Excel文件
-输出结果：特征重要性分析、滞后响应曲线、预测模型
+Yellow River Basin Groundwater Level Delayed Response Analysis Complete Code
+Input data requirements: Excel file containing dates and specified features
+Output results: Feature importance analysis, delayed response curves, prediction model
 """
 
 import pandas as pd
@@ -17,58 +17,58 @@ from keras.optimizers import Adam
 import shap
 import os
 
-# ================== 环境配置 ==================
-# 设置中文字体
+# ================== Environment Configuration ==================
+# Set Chinese font
 plt.rcParams['font.sans-serif'] = ['SimHei']
 plt.rcParams['axes.unicode_minus'] = False
 
-# 禁用oneDNN优化警告
+# Disable oneDNN optimization warnings
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
 
-# ================== 数据预处理模块 ==================
+# ================== Data Preprocessing Module ==================
 def load_and_preprocess_data(filepath, target_col='YY1-1', max_lag=12):
     """
-    数据加载和预处理流程
-    :param filepath: Excel文件路径
-    :param target_col: 目标列名称(地下水位)
-    :param max_lag: 最大滞后月份
-    :return: 3D特征数据, 目标值, 特征名称列表
+    Data loading and preprocessing pipeline
+    :param filepath: Excel file path
+    :param target_col: Target column name (groundwater level)
+    :param max_lag: Maximum lag in months
+    :return: 3D feature data, target values, feature name list
     """
     try:
-        # 1. 数据加载
+        # 1. Data loading
         df = pd.read_excel(filepath,
                            sheet_name='HydroData',
                            parse_dates=['Time'],
                            index_col='Time')
 
-        # 2. 验证必要列存在
-        features = ['Rainfall', '蒸散发', 'Huayuankou水位', 'Huayuankou流量', '耗水量']
+        # 2. Validate required columns exist
+        features = ['Rainfall', 'Evapotranspiration', 'Huayuankou_Water_Level', 'Huayuankou_Flow_Rate', 'Water_Consumption']
         required_cols = [target_col] + features
         missing_cols = [col for col in required_cols if col not in df.columns]
         if missing_cols:
-            raise ValueError(f"数据文件缺少必要列：{missing_cols}")
+            raise ValueError(f"Data file missing required columns: {missing_cols}")
 
-        # 3. 特征工程
-        print("原始数据样例：\n", df.head())
+        # 3. Feature engineering
+        print("Original data sample:\n", df.head())
 
-        # 4. 生成滞后特征
+        # 4. Generate lagged features
         for col in features:
             for lag in range(1, max_lag + 1):
                 df[f'{col}_lag{lag}'] = df[col].shift(lag)
-            df.drop(col, axis=1, inplace=True)  # 删除原始特征
+            df.drop(col, axis=1, inplace=True)  # Remove original features
 
         df = df.dropna()
-        print("滞后处理后数据维度：", df.shape)
+        print("Data dimensions after lag processing:", df.shape)
 
-        # 5. 数据标准化
+        # 5. Data standardization
         scaler_X = StandardScaler()
         scaler_y = StandardScaler()
 
         X = scaler_X.fit_transform(df.drop(target_col, axis=1))
         y = scaler_y.fit_transform(df[[target_col]]).flatten()
 
-        # 6. 转换为3D输入
+        # 6. Convert to 3D input
         n_samples = X.shape[0]
         n_features = len(features)
         X_3d = X.reshape(n_samples, max_lag, n_features)
@@ -76,23 +76,23 @@ def load_and_preprocess_data(filepath, target_col='YY1-1', max_lag=12):
         return X_3d, y, scaler_X, scaler_y, features
 
     except Exception as e:
-        print(f"数据加载失败：{str(e)}")
+        print(f"Data loading failed: {str(e)}")
         raise
 
 
-# ================== 模型构建模块 ==================
+# ================== Model Building Module ==================
 def build_lstm_attention_model(input_shape, n_features):
-    """构建时空注意力LSTM模型"""
+    """Build spatio-temporal attention LSTM model"""
     inputs = Input(shape=input_shape)
 
-    # LSTM层捕捉时间依赖性
+    # LSTM layer captures temporal dependencies
     lstm_out = LSTM(32, return_sequences=True)(inputs)
 
-    # 注意力机制层
+    # Attention mechanism layer
     attention = Attention()([lstm_out, lstm_out])
     context = Multiply()([lstm_out, attention])
 
-    # 特征聚合与输出
+    # Feature aggregation and output
     pooled = GlobalAveragePooling1D()(context)
     output = Dense(1)(pooled)
 
@@ -101,109 +101,109 @@ def build_lstm_attention_model(input_shape, n_features):
     return model
 
 
-# ================== SHAP分析模块 ==================
+# ================== SHAP Analysis Module ==================
 def shap_analysis(model, X_train, features, max_lag=12):
-    """SHAP特征贡献分析"""
+    """SHAP feature contribution analysis"""
     try:
-        # 将3D数据转换为2D
+        # Convert 3D data to 2D
         background = X_train[:50].reshape(50, -1)
 
-        # 定义模型包装器
+        # Define model wrapper
         def model_wrapper(x):
             return model.predict(x.reshape(-1, max_lag, len(features))).flatten()
 
-        # 计算SHAP值
+        # Calculate SHAP values
         explainer = shap.KernelExplainer(model_wrapper, background)
         test_samples = X_train[:10].reshape(10, -1)
         shap_values = explainer.shap_values(test_samples)
 
-        # 聚合特征贡献
+        # Aggregate feature contributions
         shap_global = np.abs(shap_values).mean(axis=0)
         shap_global = shap_global.reshape(max_lag, len(features)).sum(axis=0)
         total = shap_global.sum()
         return {features[i]: (shap_global[i] / total * 100) for i in range(len(features))}
 
     except Exception as e:
-        print(f"SHAP分析失败：{str(e)}")
+        print(f"SHAP analysis failed: {str(e)}")
         return {f: 0.0 for f in features}
 
 
-# ================== 可视化模块 ==================
+# ================== Visualization Module ==================
 def plot_results(history, att_importance, shap_importance, features):
-    """结果可视化"""
-    # 训练过程可视化
+    """Results visualization"""
+    # Training process visualization
     plt.figure(figsize=(10, 5))
-    plt.plot(history.history['loss'], label='训练损失')
-    plt.plot(history.history['val_loss'], label='验证损失')
-    plt.title('模型训练过程')
-    plt.xlabel('训练轮次')
-    plt.ylabel('均方误差')
+    plt.plot(history.history['loss'], label='Training Loss')
+    plt.plot(history.history['val_loss'], label='Validation Loss')
+    plt.title('Model Training Process')
+    plt.xlabel('Training Epochs')
+    plt.ylabel('Mean Squared Error')
     plt.legend()
     plt.savefig('training_history.png')
     plt.close()
 
-    # 特征重要性对比
+    # Feature importance comparison
     importance_df = pd.DataFrame({
-        '特征': features,
-        '注意力权重(%)': [att_importance[f] for f in features],
-        'SHAP贡献(%)': [shap_importance[f] for f in features]
-    }).sort_values('注意力权重(%)', ascending=False)
+        'Feature': features,
+        'Attention Weight(%)': [att_importance[f] for f in features],
+        'SHAP Contribution(%)': [shap_importance[f] for f in features]
+    }).sort_values('Attention Weight(%)', ascending=False)
 
-    ax = importance_df.plot.bar(x='特征', y=['注意力权重(%)', 'SHAP贡献(%)'],
+    ax = importance_df.plot.bar(x='Feature', y=['Attention Weight(%)', 'SHAP Contribution(%)'],
                                 figsize=(12, 6), rot=45)
-    ax.set_title('特征重要性对比')
-    ax.set_ylabel('贡献度百分比(%)')
+    ax.set_title('Feature Importance Comparison')
+    ax.set_ylabel('Contribution Percentage (%)')
     plt.tight_layout()
     plt.savefig('feature_importance.png')
     plt.close()
 
 
-# ================== 主程序 ==================
+# ================== Main Program ==================
 if __name__ == "__main__":
-    # 参数配置
-    DATA_PATH = "新建 Microsoft Excel 工作表.xlsx"  # 替换为实际路径
-    MAX_LAG = 6  # 滞后月份数
+    # Parameter configuration
+    DATA_PATH = "new_Microsoft_Excel_worksheet.xlsx"  # Replace with actual path
+    MAX_LAG = 6  # Number of lag months
 
     try:
-        # 1. 数据加载与预处理
+        # 1. Data loading and preprocessing
         X, y, scaler_X, scaler_y, features = load_and_preprocess_data(DATA_PATH, target_col='YY1-1', max_lag=MAX_LAG)
-        print("3D输入数据维度：", X.shape)
+        print("3D input data dimensions:", X.shape)
 
-        # 2. 数据集划分
+        # 2. Dataset split
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
 
-        # 3. 模型构建
+        # 3. Model building
         model = build_lstm_attention_model((MAX_LAG, len(features)), len(features))
         model.summary()
 
-        # 4. 模型训练
+        # 4. Model training
         history = model.fit(X_train, y_train,
                             epochs=200,
                             batch_size=32,
                             validation_split=0.2,
                             callbacks=[EarlyStopping(patience=20)])
 
-        # 5. 特征重要性分析
-        # 5.1 注意力权重分析
+        # 5. Feature importance analysis
+        # 5.1 Attention weight analysis
         partial_model = Model(inputs=model.input, outputs=model.layers[2].output)
         att_weights = np.mean(partial_model.predict(X_train), axis=(0, 1))
         att_importance = {features[i]: att_weights[i] / att_weights.sum() * 100 for i in range(len(features))}
 
-        # 5.2 SHAP分析
+        # 5.2 SHAP analysis
         shap_importance = shap_analysis(model, X_train, features, MAX_LAG)
 
-        # 6. 结果可视化与保存
+        # 6. Results visualization and saving
         plot_results(history, att_importance, shap_importance, features)
 
-        # 7. 保存结果
+        # 7. Save results
         result_df = pd.DataFrame({
-            '特征': features,
-            '最佳滞后(月)': [1, 2, 3, 4, 5],  # 需根据实际分析修改
-            '注意力贡献(%)': [att_importance[f] for f in features],
-            'SHAP贡献(%)': [shap_importance[f] for f in features]
+            'Feature': features,
+            'Optimal Lag(months)': [1, 2, 3, 4, 5],  # Needs modification based on actual analysis
+            'Attention Contribution(%)': [att_importance[f] for f in features],
+            'SHAP Contribution(%)': [shap_importance[f] for f in features]
         })
-        result_df.to_excel('分析结果.xlsx', index=False)
-        print("分析完成，结果已保存！")
+        result_df.to_excel('analysis_results.xlsx', index=False)
+        print("Analysis complete, results saved!")
 
     except Exception as e:
-        print(f"程序运行出错：{str(e)}")
+        print(f"Program execution error: {str(e)}")

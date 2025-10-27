@@ -1,1 +1,28 @@
-For paper Analysis of Spatio-Temporal Variability of Groundwater and Its Driving Factors in Typical Areas of the Suspended River in the Lower Reaches of the Yellow River After the Operation of Xiaolangdi Reservoir
+Name of the Code:
+Analysis of Spatio-Temporal Variability of Groundwater and Its Driving Factors in Typical Areas of the Suspended River in the Lower Reaches of the Yellow River After the Operation of Xiaolangdi Reservoir
+
+Developers:
+Jiwei Feng
+Contact Address:
+School of Water Conservancy and Transportation Engineering, Zhengzhou University, Zhengzhou, Henan, China
+
+Telephone:
++86-176-7127-6636
+
+Email:
+fjw412833594@163.com
+
+First Available Year:
+2025
+
+Required Software:
+Python 3.10 or higher with libraries NumPy, Pandas, SciPy, Matplotlib, GeoPandas, and Rasterio.
+
+Programming Language:
+Python
+
+Access to Source Code:
+The full source code, data preprocessing scripts, and example files are openly available from the public Git repository:
+🔗 https://github.com/DanielFeng96/Paper.git
+
+This repository is open-access and can be downloaded anonymously under the MIT License, permitting academic and non-commercial use.

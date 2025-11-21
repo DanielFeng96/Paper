@@ -1,12 +1,6 @@
 Name of the Code:
 Analysis of Spatio-Temporal Variability of Groundwater and Its Driving Factors in Typical Areas of the Suspended River in the Lower Reaches of the Yellow River After the Operation of Xiaolangdi Reservoir
 
-Developers:
-Jiwei Feng
-
-Contact Address:
-School of Water Conservancy and Transportation Engineering, Zhengzhou University, Zhengzhou, Henan, China
-
 Email:
 fjw412833594@163.com
 

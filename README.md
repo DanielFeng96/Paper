@@ -1,4 +1,4 @@
-Name of software: Analysis of Spatio-Temporal Variability of Groundwater and Its Driving Factors in Typical Areas of the Suspended River in the Lower Reaches of the Yellow River After the Operation of Xiaolangdi Reservoir
+Name of software: Driving Analysis of the Continuous Groundwater Decline Along the Lower Yellow River: Lagged Contributions of Natural and Human Factors (2001–2020)
 Developers: Jiwei Feng and He Li
 Contact: fjw412833594@163.com
 First available: 2025

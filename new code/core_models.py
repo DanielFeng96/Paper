@@ -52,7 +52,7 @@ def create_sequences(data, target, lookback):
         y.append(target[i+lookback])
     return np.array(X), np.array(y)
 
-def train_model(model, train_loader, epochs=100, lr=0.005, device='cpu'):
+def train_model(model, train_loader, epochs=240, lr=0.01, device='cpu'):
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     model.train()
@@ -65,3 +65,4 @@ def train_model(model, train_loader, epochs=100, lr=0.005, device='cpu'):
             loss.backward()
             optimizer.step()
     return model
+
